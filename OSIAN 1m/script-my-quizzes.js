@@ -31,11 +31,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const prevBtn = document.getElementById('prev-btn');
     const nextBtn = document.getElementById('next-btn');
     const pageInfo = document.getElementById('page-info');
-    const quizModal = document.getElementById('quiz-details-modal');
-    const quizModalTitle = document.getElementById('quiz-modal-title');
-    const quizModalMeta = document.getElementById('quiz-modal-meta');
-    const quizModalBody = document.getElementById('quiz-modal-body');
-    const quizModalClose = document.getElementById('quiz-modal-close');
 
     let currentPage = 1;
     let totalPages = 1;
@@ -175,72 +170,9 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     // --- Global Functions for Buttons ---
-    window.viewQuiz = async function(quizId) {
-        try {
-            const response = await fetch(`${backendUrl}/quizzes/${quizId}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (!response.ok) {
-                if (response.status === 401 || response.status === 403) {
-                    localStorage.removeItem('user');
-                    localStorage.removeItem('token');
-                    window.location.href = 'login.html';
-                    return;
-                }
-                throw new Error('Failed to fetch quiz details');
-            }
-
-            const quiz = await response.json();
-
-            const typeText = quiz.quizType === 'paid' ? 'Paid' : (quiz.quizType === 'live' ? 'Live' : (quiz.quizType === 'upcoming' ? 'Upcoming' : 'Regular'));
-            const scheduleTime = quiz.scheduleTime ? new Date(quiz.scheduleTime).toLocaleString() : '--';
-            const createdDate = quiz.createdAt ? new Date(quiz.createdAt).toLocaleDateString() : '--';
-            const registeredUsers = quiz.registeredUsers || 0;
-            const registrationLimit = quiz.registrationLimit ? ` / ${quiz.registrationLimit}` : '';
-            const creatorName = quiz.createdBy && (quiz.createdBy.name || quiz.createdBy.fullname || quiz.createdBy.email) ? (quiz.createdBy.name || quiz.createdBy.fullname || quiz.createdBy.email) : 'Unknown';
-
-            quizModalTitle.textContent = quiz.title || 'Quiz Details';
-            quizModalMeta.textContent = `Category: ${quiz.category || '--'} • Type: ${typeText} • Duration: ${quiz.duration || '--'} min`;
-
-            const details = [];
-            details.push(`<div><strong>Registered Users:</strong> ${registeredUsers}${registrationLimit}</div>`);
-            details.push(`<div><strong>Status:</strong> ${quiz.status || 'Unknown'}</div>`);
-            details.push(`<div><strong>Schedule Time:</strong> ${scheduleTime}</div>`);
-            if (quiz.price !== undefined && quiz.price !== null) {
-                details.push(`<div><strong>Price:</strong> ${quiz.price}</div>`);
-            }
-            details.push(`<div><strong>Created By:</strong> ${creatorName}</div>`);
-            details.push(`<div><strong>Created Date:</strong> ${createdDate}</div>`);
-            if (quiz.coverImage) {
-                details.push(`<div style="margin-top:10px"><img src="${quiz.coverImage}" alt="Cover" style="max-width:100%; border-radius:8px"/></div>`);
-            }
-
-            let questionsHtml = '';
-            if (Array.isArray(quiz.questions) && quiz.questions.length > 0) {
-                questionsHtml += `<div style="margin-top:15px"><strong>Questions (${quiz.questions.length}):</strong></div>`;
-                questionsHtml += '<ol style="margin-top:8px">';
-                quiz.questions.forEach((q) => {
-                    const opts = Array.isArray(q.options) ? q.options.map((o, idx) => {
-                        const isCorrect = q.correctAnswer !== undefined && q.correctAnswer === idx;
-                        return `<div>${String.fromCharCode(65 + idx)}. ${o}${isCorrect ? ' ✓' : ''}</div>`;
-                    }).join('') : '';
-                    questionsHtml += `<li style="margin-bottom:10px"><div>${q.question}</div>${opts}</li>`;
-                });
-                questionsHtml += '</ol>';
-            }
-
-            quizModalBody.innerHTML = `${details.join('')}${questionsHtml}`;
-
-            if (quizModal) {
-                quizModal.style.display = 'flex';
-            }
-        } catch (error) {
-            console.error('Error viewing quiz:', error);
-            alert('Failed to load quiz details. Please try again.');
-        }
+    window.viewQuiz = function(quizId) {
+        // Implement view quiz details
+        alert('View quiz functionality to be implemented');
     };
 
     window.editQuiz = function(quizId) {
@@ -283,14 +215,4 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // --- Initial Load ---
     fetchMyQuizzes();
-    if (quizModalClose && quizModal) {
-        quizModalClose.addEventListener('click', function() {
-            quizModal.style.display = 'none';
-        });
-        window.addEventListener('click', function(e) {
-            if (e.target === quizModal) {
-                quizModal.style.display = 'none';
-            }
-        });
-    }
 });

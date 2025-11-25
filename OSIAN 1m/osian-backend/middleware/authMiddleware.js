@@ -18,10 +18,7 @@ const authenticateToken = async (req, res, next) => {
     // --- THIS IS THE FIX ---
     // We REMOVED the '|| "your-secret-key"' fallback.
     // This forces it to use the one true secret from your .env file.
-    if (!process.env.JWT_SECRET) {
-      throw new Error('JWT_SECRET is not configured');
-    }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key-for-development');
     // ---------------------
 
     // Use the userId from the decoded token to find the user

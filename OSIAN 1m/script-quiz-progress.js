@@ -36,22 +36,6 @@ document.addEventListener("DOMContentLoaded", function() {
     const kpiPassed = document.querySelector('.kpi-grid-user .kpi-card-user:nth-child(2) h2');
     const kpiAvgScore = document.querySelector('.kpi-grid-user .kpi-card-user:nth-child(3) h2');
     const historyTableBody = document.querySelector('.quiz-history-table tbody');
-    const regPrevBtn = document.getElementById('reg-prev-btn');
-    const regNextBtn = document.getElementById('reg-next-btn');
-    const regPageInfo = document.getElementById('reg-page-info');
-    const histPrevBtn = document.getElementById('hist-prev-btn');
-    const histNextBtn = document.getElementById('hist-next-btn');
-    const histPageInfo = document.getElementById('hist-page-info');
-
-    let regPage = 1;
-    let regTotalPages = 1;
-    let regData = [];
-    const regPageSize = 6;
-
-    let histPage = 1;
-    let histTotalPages = 1;
-    let histData = [];
-    const histPageSize = 10;
 
     // --- Fetch User's Results ---
     async function fetchMyResults() {
@@ -84,11 +68,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
             const data = await response.json();
             const results = data.results;
+
+            // Populate the page with the data
             populateStats(results);
-            histData = results || [];
-            histTotalPages = Math.max(1, Math.ceil(histData.length / histPageSize));
-            histPage = 1;
-            renderHistoryPage();
+            populateHistoryTable(results);
 
         } catch (error) {
             console.error('Error fetching results:', error);
@@ -118,10 +101,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
             const data = await response.json();
             const quizzes = data.quizzes;
-            regData = quizzes || [];
-            regTotalPages = Math.max(1, Math.ceil(regData.length / regPageSize));
-            regPage = 1;
-            renderRegisteredQuizzesPage();
+
+            // Populate registered quizzes section
+            populateRegisteredQuizzes(quizzes);
 
         } catch (error) {
             console.error('Error fetching registered quizzes:', error);
@@ -219,7 +201,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     </div>
                 </div>
                 <div class="quiz-card-actions">
-                    ${status === 'Live' ? `<button class="btn-primary" onclick="startQuiz('${quiz._id}','${quiz.quizType}')">Start Quiz</button>` : ''}
+                    ${status === 'Live' ? `<button class="btn-primary" onclick="startQuiz('${quiz._id}')">Start Quiz</button>` : ''}
                     ${status === 'Upcoming' ? `<button class="btn-secondary" onclick="viewQuizDetails('${quiz._id}')">View Details</button>` : ''}
                     ${status === 'Completed' ? `<button class="btn-secondary" onclick="viewResults('${quiz._id}')">View Results</button>` : ''}
                 </div>
@@ -275,33 +257,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     // --- Global Functions for Buttons ---
-    async function getProfileCompleteness() {
-        try {
-            const res = await fetch(`${backendUrl}/users/profile`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!res.ok) return 0;
-            const data = await res.json();
-            const u = data.user || {};
-            const p = u.profile || {};
-            const required = [u.name, u.email, p.phone, p.city, p.college, p.course, p.state];
-            const filled = required.filter(v => v && String(v).trim().length > 0).length;
-            const pct = Math.round((filled / required.length) * 100);
-            return pct;
-        } catch (_) {
-            return 0;
-        }
-    }
-
-    window.startQuiz = async function(quizId, quizType) {
-        if (quizType === 'paid') {
-            const pct = await getProfileCompleteness();
-            if (pct < 100) {
-                alert('Please complete your profile 100% before attempting paid quizzes.');
-                window.location.href = 'profile.html?role=user';
-                return;
-            }
-        }
+    window.startQuiz = function(quizId) {
         window.location.href = `quiz.html?id=${quizId}`;
     };
 
@@ -317,30 +273,5 @@ document.addEventListener("DOMContentLoaded", function() {
     // --- Initial Page Load ---
     fetchMyResults();
     fetchMyRegisteredQuizzes();
-
-    function renderRegisteredQuizzesPage() {
-        const start = (regPage - 1) * regPageSize;
-        const end = start + regPageSize;
-        const pageItems = regData.slice(start, end);
-        populateRegisteredQuizzes(pageItems);
-        if (regPageInfo) regPageInfo.textContent = `Page ${regPage} of ${regTotalPages}`;
-        if (regPrevBtn) regPrevBtn.disabled = regPage === 1;
-        if (regNextBtn) regNextBtn.disabled = regPage === regTotalPages;
-    }
-
-    function renderHistoryPage() {
-        const start = (histPage - 1) * histPageSize;
-        const end = start + histPageSize;
-        const pageItems = histData.slice(start, end);
-        populateHistoryTable(pageItems);
-        if (histPageInfo) histPageInfo.textContent = `Page ${histPage} of ${histTotalPages}`;
-        if (histPrevBtn) histPrevBtn.disabled = histPage === 1;
-        if (histNextBtn) histNextBtn.disabled = histPage === histTotalPages;
-    }
-
-    if (regPrevBtn) regPrevBtn.addEventListener('click', function() { if (regPage > 1) { regPage--; renderRegisteredQuizzesPage(); } });
-    if (regNextBtn) regNextBtn.addEventListener('click', function() { if (regPage < regTotalPages) { regPage++; renderRegisteredQuizzesPage(); } });
-    if (histPrevBtn) histPrevBtn.addEventListener('click', function() { if (histPage > 1) { histPage--; renderHistoryPage(); } });
-    if (histNextBtn) histNextBtn.addEventListener('click', function() { if (histPage < histTotalPages) { histPage++; renderHistoryPage(); } });
 
 });

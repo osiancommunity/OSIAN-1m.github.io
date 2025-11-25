@@ -1,6 +1,5 @@
 const Quiz = require('../models/Quiz');
 const Result = require('../models/Result');
-const User = require('../models/User');
 
 /**
  * @desc    Create a new quiz
@@ -124,18 +123,8 @@ async function getQuizById(req, res) {
             return res.status(404).json({ message: 'Quiz not found.' });
         }
 
-        // If a regular user, enforce paid quiz gating and remove correct answers
+        // If a regular user, remove correct answers for security
         if (req.user && req.user.role === 'user') {
-            if (quiz.quizType === 'paid') {
-                const u = await User.findById(req.user.id);
-                const p = (u && u.profile) || {};
-                const required = [u && u.name, u && u.email, p.phone, p.city, p.college, p.course, p.state];
-                const filled = required.filter(v => v && String(v).trim().length > 0).length;
-                const pct = Math.round((filled / required.length) * 100);
-                if (pct < 100) {
-                    return res.status(403).json({ message: 'Complete your profile 100% to access paid quizzes.' });
-                }
-            }
             const quizForUser = quiz.toObject(); // Convert Mongoose document to plain object
             quizForUser.questions = quizForUser.questions.map(q => {
                 if (q.questionType === 'mcq') {

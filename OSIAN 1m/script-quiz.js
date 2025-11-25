@@ -24,12 +24,6 @@ document.addEventListener("DOMContentLoaded", function() {
         return;
     }
 
-    if (localStorage.getItem(`submitted_${quizId}`) === 'true') {
-        alert('You have already submitted this quiz with your account.');
-        window.location.href = 'quiz-progress.html';
-        return;
-    }
-
     // --- Page Elements ---
     const warningModal = document.getElementById('warning-modal');
     const autoSubmitModal = document.getElementById('auto-submit-modal');
@@ -321,10 +315,6 @@ document.addEventListener("DOMContentLoaded", function() {
                     const data = await response.json();
                     throw new Error(data.message || 'Access denied.');
                 }
-                if (response.status === 400) {
-                    const data = await response.json();
-                    throw new Error(data.message || 'Quiz already submitted.');
-                }
                 throw new Error('Failed to submit quiz.');
             }
 
@@ -338,12 +328,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 finalSubmitModal.querySelector('p').textContent = `Your score: ${data.result.score} / ${data.result.totalQuestions}`;
             }
 
-            try { localStorage.setItem(`submitted_${quizId}`, 'true'); } catch (_) {}
-
         } catch (error) {
             console.error('Submit Error:', error);
             finalSubmitModal.querySelector('h2').textContent = "Submission Failed!";
-            finalSubmitModal.querySelector('p').textContent = error.message || "There was an error saving your results. Please contact support.";
+            finalSubmitModal.querySelector('p').textContent = "There was an error saving your results. Please contact support.";
         }
     }
 

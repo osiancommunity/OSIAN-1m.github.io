@@ -67,7 +67,7 @@ const resultSchema = new mongoose.Schema({
 });
 
 // Index for efficient queries
-resultSchema.index({ userId: 1, quizId: 1 }, { unique: true });
+resultSchema.index({ userId: 1, quizId: 1 });
 resultSchema.index({ status: 1 });
 
 module.exports = mongoose.model('Result', resultSchema);
