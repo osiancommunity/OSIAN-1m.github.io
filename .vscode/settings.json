@@ -1,0 +1,6 @@
+{
+    "java.test.config": {
+
+    },
+    "javascript.inlayHints.functionLikeReturnTypes.enabled": true
+}
