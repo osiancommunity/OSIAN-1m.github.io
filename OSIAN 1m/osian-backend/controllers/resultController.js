@@ -135,7 +135,9 @@ const submitQuiz = async (req, res) => {
         correctAnswers,
         percentage: Math.round(percentage),
         passed,
-        timeTaken
+        timeTaken,
+        status,
+        releaseTime
       }
     });
   } catch (error) {

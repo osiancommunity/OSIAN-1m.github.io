@@ -36,7 +36,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error('Failed to fetch users');
             }
 
-            allUsers = await response.json();
+            const data = await response.json();
+            allUsers = data.users || [];
             renderUsers(allUsers);
         } catch (error) {
             console.error('Error fetching users:', error);
@@ -54,15 +55,15 @@ document.addEventListener('DOMContentLoaded', function () {
         users.forEach(user => {
             const userRow = document.createElement('tr');
             userRow.innerHTML = `
-                <td>${user.fullname}</td>
-                <td>${user.email}</td>
+                <td>${user.name || user.fullname || ''}</td>
+                <td>${user.email || ''}</td>
                 <td><span class="role-tag ${user.role}">${user.role}</span></td>
-                <td>${new Date(user.createdAt).toLocaleDateString()}</td>
-                <td><span class="status-tag ${user.status === 'active' ? 'active' : 'inactive'}">${user.status}</span></td>
+                <td>${user.createdAt ? new Date(user.createdAt).toLocaleDateString() : ''}</td>
+                <td><span class="status-tag ${user.isActive ? 'active' : 'inactive'}">${user.isActive ? 'active' : 'inactive'}</span></td>
                 <td>
-                    <button class="btn-edit change-role-btn" data-userid="${user._id}" data-username="${user.fullname}">Change Role</button>
-                    <button class="btn-${user.status === 'active' ? 'delete' : 'create'} toggle-status-btn" data-userid="${user._id}" data-status="${user.status}">
-                        ${user.status === 'active' ? 'Deactivate' : 'Activate'}
+                    <button class="btn-edit change-role-btn" data-userid="${user._id}" data-username="${user.name || user.fullname || ''}">Change Role</button>
+                    <button class="btn-${user.isActive ? 'delete' : 'create'} toggle-status-btn" data-userid="${user._id}" data-status="${user.isActive ? 'active' : 'inactive'}">
+                        ${user.isActive ? 'Deactivate' : 'Activate'}
                     </button>
                 </td>
             `;
@@ -106,13 +107,13 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!currentUserId || !newRole) return;
 
         try {
-            const response = await fetch(`${backendUrl}/users/${currentUserId}/role`, {
+            const response = await fetch(`${backendUrl}/users/role`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ role: newRole })
+                body: JSON.stringify({ userId: currentUserId, newRole })
             });
 
             if (!response.ok) {
@@ -132,13 +133,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const toggleUserStatus = async (userId, currentStatus) => {
         const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
         try {
-            const response = await fetch(`${backendUrl}/users/${userId}/status`, {
+            const response = await fetch(`${backendUrl}/users/status`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ status: newStatus })
+                body: JSON.stringify({ userId: userId, isActive: newStatus === 'active' })
             });
 
             if (!response.ok) {

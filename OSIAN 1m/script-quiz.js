@@ -49,8 +49,19 @@ document.addEventListener("DOMContentLoaded", function() {
     let timerInterval = null;
     let timer = 0; // Track remaining time
     let violationCount = 0;
-    const maxViolations = 2;
+    const maxViolations = 3;
     let isLoading = false; // To track loading state
+    let isProctoringEnabled = false;
+    const proctorVideo = document.getElementById('proctor-video');
+    const proctorWrapper = document.getElementById('proctor-video-wrapper');
+    const proctorStatus = document.getElementById('proctor-status');
+    let mediaStream = null;
+    let faceModel = null;
+    let faceCheckInterval = null;
+    let faceAbsentSince = null;
+    let objectModel = null;
+    let objectCheckInterval = null;
+    let prohibitedDetectedSince = null;
 
     // ===================================
     // 1. LOAD QUIZ DATA
@@ -97,10 +108,19 @@ document.addEventListener("DOMContentLoaded", function() {
     // ===================================
     // 2. START QUIZ
     // ===================================
-    startQuizBtn.addEventListener('click', function() {
+    startQuizBtn.addEventListener('click', async function() {
         if (!currentQuizData) {
             alert('Quiz data not loaded. Please refresh the page.');
             return;
+        }
+        isProctoringEnabled = String(currentQuizData.quizType || '').toLowerCase() === 'paid';
+        if (isProctoringEnabled) {
+            try {
+                await setupProctoring();
+            } catch (e) {
+                alert('Camera access is required to start this paid quiz.');
+                return;
+            }
         }
         warningModal.classList.remove('active');
         quizContainer.style.display = 'block';
@@ -266,6 +286,7 @@ document.addEventListener("DOMContentLoaded", function() {
     async function submitQuiz(reason, wasAutoSubmitted = false) {
         clearInterval(timerInterval); // Stop the clock
         removeSecurityListeners();
+        stopProctoring();
         
         console.log(`Submitting quiz. Reason: ${reason}`);
         quizContainer.style.display = 'none';
@@ -300,7 +321,8 @@ document.addEventListener("DOMContentLoaded", function() {
                             timeSpent: 0
                         };
                     }),
-                    timeTaken: currentQuizData.duration * 60 - timer
+                    timeTaken: currentQuizData.duration * 60 - timer,
+                    cheatingViolation: wasAutoSubmitted ? (reason || 'Proctoring violation') : undefined
                 })
             });
 
@@ -347,8 +369,13 @@ document.addEventListener("DOMContentLoaded", function() {
             console.error("Violation count display element missing.");
         }
         document.addEventListener("visibilitychange", handleVisibilityChange);
-        document.body.addEventListener('copy', disableEvent);
-        document.body.addEventListener('paste', disableEvent);
+        if (isProctoringEnabled) {
+            document.body.addEventListener('copy', disableEvent);
+            document.body.addEventListener('paste', disableEvent);
+            document.addEventListener('contextmenu', disableEvent);
+            document.body.addEventListener('keydown', disableKeydown);
+            document.addEventListener('fullscreenchange', handleFullscreenChange);
+        }
     }
 
     function removeSecurityListeners() {
@@ -356,30 +383,16 @@ document.addEventListener("DOMContentLoaded", function() {
         document.removeEventListener("visibilitychange", handleVisibilityChange);
         document.body.removeEventListener('copy', disableEvent);
         document.body.removeEventListener('paste', disableEvent);
+        document.removeEventListener('contextmenu', disableEvent);
+        document.body.removeEventListener('keydown', disableKeydown);
+        document.removeEventListener('fullscreenchange', handleFullscreenChange);
     }
 
     function handleVisibilityChange() {
-        console.log("Visibility change event triggered.");
         if (document.hidden) {
-            violationCount++;
-            console.log(`Tab hidden. Violation count: ${violationCount}`);
-            if(cheatingWarningBanner) cheatingWarningBanner.style.display = 'flex';
-            if(violationCountDisplay) violationCountDisplay.textContent = violationCount;
-
-            // Improved UI: Show warning message near violation count
-            const warningElem = cheatingWarningBanner ? cheatingWarningBanner.querySelector('.warning-text') : null;
-            if(warningElem) {
-                warningElem.textContent = `Warning: You switched tabs ${violationCount} time${violationCount > 1 ? 's' : ''}. Limit is ${maxViolations} before auto-submit.`;
-            }
-
-            if (violationCount >= maxViolations) {
-                console.log("Violation count exceeded max limit, submitting quiz...");
-                submitQuiz("Cheating violation", true);
-            }
+            triggerViolation('Tab/window hidden');
         } else {
-            // Hide warning when user returns to tab
             if(cheatingWarningBanner) cheatingWarningBanner.style.display = 'none';
-            console.log("Tab visible again, hiding warning.");
         }
     }
 
@@ -387,6 +400,124 @@ document.addEventListener("DOMContentLoaded", function() {
         e.preventDefault();
         alert("This action is disabled during the quiz.");
         return false;
+    }
+    function disableKeydown(e) {
+        const k = e.key.toLowerCase();
+        if (e.ctrlKey && (k === 'c' || k === 'v' || k === 'x' || k === 'p')) {
+            e.preventDefault();
+        }
+    }
+
+    function triggerViolation(reason) {
+        violationCount++;
+        if(cheatingWarningBanner) cheatingWarningBanner.style.display = 'flex';
+        if(violationCountDisplay) violationCountDisplay.textContent = violationCount;
+        const warningElem = cheatingWarningBanner ? cheatingWarningBanner.querySelector('.warning-text') : null;
+        if(warningElem) {
+            warningElem.textContent = reason ? `${reason}. Limit is ${maxViolations} before auto-submit.` : '';
+        }
+        if (violationCount >= maxViolations) {
+            submitQuiz('Violation limit reached', true);
+        }
+    }
+
+    async function setupProctoring() {
+        await requestCamera();
+        enterFullscreen();
+        startFaceDetection();
+        startObjectDetection();
+    }
+
+    async function requestCamera() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !proctorVideo || !proctorWrapper) {
+            throw new Error('Camera unsupported');
+        }
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+        proctorVideo.srcObject = mediaStream;
+        proctorWrapper.style.display = 'flex';
+        await proctorVideo.play();
+        if (proctorStatus) proctorStatus.textContent = 'Camera active';
+    }
+
+    function enterFullscreen() {
+        const el = document.documentElement;
+        if (el.requestFullscreen) el.requestFullscreen();
+    }
+
+    function handleFullscreenChange() {
+        if (!document.fullscreenElement) {
+            triggerViolation('Exited fullscreen');
+        }
+    }
+
+    async function startFaceDetection() {
+        try {
+            if (typeof blazeface === 'undefined') return;
+            faceModel = await blazeface.load();
+            if (faceCheckInterval) clearInterval(faceCheckInterval);
+            faceCheckInterval = setInterval(async function() {
+                if (!faceModel || !proctorVideo) return;
+                const faces = await faceModel.estimateFaces(proctorVideo, false);
+                if (faces && faces.length > 0) {
+                    faceAbsentSince = null;
+                    if (proctorStatus) proctorStatus.textContent = 'Face detected';
+                    if (faces.length > 1) {
+                        triggerViolation('Multiple faces detected');
+                    }
+                } else {
+                    if (faceAbsentSince == null) faceAbsentSince = Date.now();
+                    if (Date.now() - faceAbsentSince > 5000) {
+                        triggerViolation('No face detected');
+                        faceAbsentSince = Date.now();
+                    }
+                    if (proctorStatus) proctorStatus.textContent = 'No face';
+                }
+            }, 1000);
+        } catch(e) {}
+    }
+
+    async function startObjectDetection() {
+        try {
+            if (typeof cocoSsd === 'undefined') return;
+            objectModel = await cocoSsd.load();
+            if (objectCheckInterval) clearInterval(objectCheckInterval);
+            objectCheckInterval = setInterval(async function() {
+                if (!objectModel || !proctorVideo) return;
+                const predictions = await objectModel.detect(proctorVideo);
+                const hasPhone = predictions.some(p => (p.class || '').toLowerCase() === 'cell phone' && p.score > 0.6);
+                const hasBook = predictions.some(p => (p.class || '').toLowerCase() === 'book' && p.score > 0.6);
+                const hasLaptop = predictions.some(p => (p.class || '').toLowerCase() === 'laptop' && p.score > 0.6);
+                const prohibited = hasPhone || hasBook || hasLaptop;
+                if (prohibited) {
+                    if (prohibitedDetectedSince == null) prohibitedDetectedSince = Date.now();
+                    if (Date.now() - prohibitedDetectedSince > 3000) {
+                        triggerViolation('Prohibited object detected');
+                        prohibitedDetectedSince = Date.now();
+                    }
+                } else {
+                    prohibitedDetectedSince = null;
+                }
+            }, 1500);
+        } catch(e) {}
+    }
+
+    function stopProctoring() {
+        if (faceCheckInterval) {
+            clearInterval(faceCheckInterval);
+            faceCheckInterval = null;
+        }
+        if (objectCheckInterval) {
+            clearInterval(objectCheckInterval);
+            objectCheckInterval = null;
+        }
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(t => t.stop());
+            mediaStream = null;
+        }
+        if (document.fullscreenElement && document.exitFullscreen) {
+            document.exitFullscreen();
+        }
+        if (proctorWrapper) proctorWrapper.style.display = 'none';
     }
     
     // --- Initial Load ---
