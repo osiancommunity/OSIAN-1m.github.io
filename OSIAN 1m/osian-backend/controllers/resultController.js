@@ -16,21 +16,16 @@ const submitQuiz = async (req, res) => {
       });
     }
 
-    // Check if user has already submitted this quiz.
-    // This prevents duplicate submissions for the same attempt.
-    // Temporarily disabled for testing
-    // const existingResult = await Result.findOne({
-    //   userId,
-    //   quizId,
-    //   // A check for 'completed' status might be too restrictive if you allow re-attempts.
-    //   // For now, we prevent any duplicate submissions.
-    // });
-    // if (existingResult) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: 'Quiz already completed'
-    //   });
-    // }
+    // Enforce: only one submission per paid quiz per user
+    if (quiz.quizType === 'paid') {
+      const existingResult = await Result.findOne({ userId, quizId });
+      if (existingResult) {
+        return res.status(409).json({
+          success: false,
+          message: 'Submission failed: you already submitted this paid quiz.'
+        });
+      }
+    }
 
     // For paid quizzes, check if the user is registered in the quiz's `participants` array.
     // Temporarily disabled for testing

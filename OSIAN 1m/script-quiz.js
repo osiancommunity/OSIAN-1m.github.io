@@ -333,11 +333,13 @@ document.addEventListener("DOMContentLoaded", function() {
                     window.location.href = 'login.html';
                     return; // Silently redirect
                 }
-                if (response.status === 403) {
+                try {
                     const data = await response.json();
-                    throw new Error(data.message || 'Access denied.');
+                    const msg = data && data.message ? data.message : 'Failed to submit quiz.';
+                    throw new Error(msg);
+                } catch(e) {
+                    throw new Error('Failed to submit quiz.');
                 }
-                throw new Error('Failed to submit quiz.');
             }
 
             const data = await response.json();
@@ -352,8 +354,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
         } catch (error) {
             console.error('Submit Error:', error);
-            finalSubmitModal.querySelector('h2').textContent = "Submission Failed!";
-            finalSubmitModal.querySelector('p').textContent = "There was an error saving your results. Please contact support.";
+            finalSubmitModal.querySelector('h2').textContent = 'Submission Failed!';
+            finalSubmitModal.querySelector('p').textContent = (error && error.message) ? error.message : 'There was an error saving your results. Please contact support.';
         }
     }
 
