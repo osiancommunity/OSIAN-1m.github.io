@@ -128,6 +128,7 @@ async function fetchAllResults() {
         const data = await response.json();
         allResults = data.results || [];
         filteredResults = [...allResults];
+        sortResults();
         renderResults();
         renderSummary();
     } catch (error) {
@@ -155,11 +156,12 @@ async function fetchAllResults() {
                 throw new Error('Failed to fetch quiz results');
             }
 
-            const data = await response.json();
-            allResults = data.results || [];
-            filteredResults = [...allResults];
-            renderResults();
-            renderSummary();
+        const data = await response.json();
+        allResults = data.results || [];
+        filteredResults = [...allResults];
+        sortResults();
+        renderResults();
+        renderSummary();
         } catch (error) {
             console.error('Error fetching quiz results:', error);
             resultsTableBody.innerHTML = '<tr><td colspan="7">Error loading quiz results. Please try again.</td></tr>';
@@ -207,6 +209,20 @@ async function fetchAllResults() {
         });
 
         updatePagination();
+    }
+
+    function sortResults() {
+        filteredResults.sort((a, b) => {
+            const sa = a.score ?? 0;
+            const sb = b.score ?? 0;
+            if (sb !== sa) return sb - sa;
+            const ta = a.timeTaken ?? Number.MAX_SAFE_INTEGER;
+            const tb = b.timeTaken ?? Number.MAX_SAFE_INTEGER;
+            if (ta !== tb) return ta - tb;
+            const ca = new Date(a.completedAt || 0).getTime();
+            const cb = new Date(b.completedAt || 0).getTime();
+            return cb - ca;
+        });
     }
 
     // --- Render Summary Stats ---
@@ -277,6 +293,7 @@ async function fetchAllResults() {
             (result.userId && result.userId.email.toLowerCase().includes(searchTerm))
         );
         currentPage = 1;
+        sortResults();
         renderResults();
         renderSummary();
     });

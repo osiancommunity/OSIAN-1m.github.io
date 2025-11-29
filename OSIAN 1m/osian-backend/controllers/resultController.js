@@ -230,7 +230,7 @@ const getQuizResults = async (req, res) => {
 
     const results = await Result.find({ quizId, status: 'completed' })
       .populate('userId', 'name email')
-      .sort({ completedAt: -1 })
+      .sort({ score: -1, timeTaken: 1, completedAt: -1 })
       .skip(skip)
       .limit(limit);
 
@@ -305,7 +305,7 @@ const getAdminResults = async (req, res) => {
       results = await Result.find({})
         .populate('userId', 'name email')
         .populate('quizId', 'title')
-        .sort({ completedAt: -1 })
+        .sort({ score: -1, timeTaken: 1, completedAt: -1 })
         .skip(skip)
         .limit(limit);
 
@@ -320,7 +320,7 @@ const getAdminResults = async (req, res) => {
       results = await Result.find({ quizId: { $in: quizIds } })
         .populate('userId', 'name email')
         .populate('quizId', 'title')
-        .sort({ completedAt: -1 })
+        .sort({ score: -1, timeTaken: 1, completedAt: -1 })
         .skip(skip)
         .limit(limit);
 

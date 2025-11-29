@@ -76,6 +76,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await response.json();
             const user = data.user;
+            let existingLocal = {};
+            try { existingLocal = JSON.parse(localStorage.getItem('osianUserData')) || {}; } catch(e) { existingLocal = {}; }
 
             // Merge with default data
             let userData = {
@@ -83,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 _id: user._id,  // Add user unique _id
                 name: user.name,
                 email: user.email,
-                username: user.username || defaultData.username,
+                username: user.username || existingLocal.username || defaultData.username,
                 mobile: user.profile?.phone || '',
                 city: user.profile?.city || '',
                 college: user.profile?.college || '',
@@ -94,18 +96,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 stats: defaultData.stats // Keep default stats for now
             };
 
-            // Generate a unique username if missing or default
             if (!userData.username || userData.username === defaultData.username) {
-                const baseName = (userData.name || 'user').replace(/\s+/g, '').toLowerCase();
-                const randomNumber = Math.floor(1000 + Math.random() * 9000);
-                userData.username = `@${baseName}${randomNumber}`;
-
-                // Update the localStorage with the generated username
-                localStorage.setItem('osianUserData', JSON.stringify(userData));
-            } else {
-                // Store in localStorage for other pages
-                localStorage.setItem('osianUserData', JSON.stringify(userData));
+                const persisted = existingLocal.username && existingLocal.username !== defaultData.username ? existingLocal.username : null;
+                if (persisted) {
+                    userData.username = persisted;
+                } else {
+                    const baseName = (userData.name || 'user').replace(/\s+/g, '').toLowerCase();
+                    const randomNumber = Math.floor(1000 + Math.random() * 9000);
+                    userData.username = `@${baseName}${randomNumber}`;
+                }
             }
+
+            localStorage.setItem('osianUserData', JSON.stringify(userData));
 
             // Show/hide fields based on role
             const userFields = document.getElementById('user-fields');
