@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const backendUrl = 'http://localhost:5000/api';
+const backendUrl = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:5000/api' : '/api';
     const token = localStorage.getItem('token');
     const adminTableBody = document.getElementById('admin-list-body');
     const searchInput = document.getElementById('user-search');

@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     // Define the location of your backend
-    const backendUrl = 'http://localhost:5000/api';
+const backendUrl = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:5000/api' : '/api';
 
     // --- User & Logout Logic ---
     const user = JSON.parse(localStorage.getItem('user'));
@@ -507,7 +507,7 @@ async function fetchAllResults() {
 
     // --- Global Functions for Buttons ---
     window.viewDetailedResult = async function(resultId) {
-        const backendUrl = 'http://localhost:5000/api';
+        const backendUrl = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:5000/api' : '/api';
         const token = localStorage.getItem('token');
         const modal = document.getElementById('result-modal');
         const modalBody = document.getElementById('result-modal-body');

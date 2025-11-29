@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", function() {
 
     // Define the location of your backend
-    const backendUrl = 'http://localhost:5000/api';
+const backendUrl = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:5000/api' : '/api';
 
     // --- Authentication ---
     const user = JSON.parse(localStorage.getItem('user'));

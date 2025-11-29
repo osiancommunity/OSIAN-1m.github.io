@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "osian-backend/server.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "osian-backend/server.js" }
+  ]
+}
