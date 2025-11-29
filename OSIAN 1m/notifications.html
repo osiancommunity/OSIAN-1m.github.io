@@ -75,7 +75,21 @@
         </main>
     </div>
 
+    <div class="bottom-nav">
+        <a href="dashboard-user.html" id="nav-dashboard"><i class='bx bxs-dashboard'></i><span>Home</span></a>
+        <a href="quiz-progress.html" id="nav-quizzes"><i class='bx bx-file-blank'></i><span>Quizzes</span></a>
+        <a href="mentorship-user.html" id="nav-mentorship"><i class='bx bx-video'></i><span>Mentor</span></a>
+        <a href="notifications.html" id="nav-notifs"><i class='bx bx-bell'></i><span>Alerts</span></a>
+        <a href="profile.html" id="nav-profile"><i class='bx bxs-user'></i><span>Profile</span></a>
+    </div>
+
     <script src="script-notifications.js"></script>
+    <script>
+    (function(){
+        var el = document.getElementById('nav-notifs');
+        if (el) el.classList.add('active');
+    })();
+    </script>
     <script>
     (function(){
         const toggle = document.getElementById('sidebar-toggle');
