@@ -48,6 +48,13 @@ const UserSchema = new mongoose.Schema({
             'Please add a valid email'
         ]
     },
+    username: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        match: [/^[@a-z0-9_]+$/,'Invalid username']
+    },
     role: {
         type: String,
         enum: ['user', 'admin', 'superadmin'],
@@ -102,6 +109,16 @@ UserSchema.pre('save', async function(next) {
     // Hash the password with a salt round of 10
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    next();
+});
+
+UserSchema.pre('save', async function(next) {
+    if (!this.username) {
+        const n = (this.name && this.name[0]) ? this.name[0].toLowerCase() : (this.email && this.email[0] ? this.email[0].toLowerCase() : 'u');
+        const sum = (this.email || '').toLowerCase().split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+        const suffix = String(sum % 1000000).padStart(6, '0');
+        this.username = `@${n}${suffix}`;
+    }
     next();
 });
 

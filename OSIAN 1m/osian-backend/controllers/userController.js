@@ -2,6 +2,13 @@ const User = require('../models/User');
 const Result = require('../models/Result');
 const bcrypt = require('bcryptjs');
 
+function generateUsername(name, email) {
+  const n = (name && name[0]) ? name[0].toLowerCase() : (email && email[0] ? email[0].toLowerCase() : 'u');
+  const sum = (email || '').toLowerCase().split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const suffix = String(sum % 1000000).padStart(6, '0');
+  return `@${n}${suffix}`;
+}
+
 const getUsers = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -151,19 +158,18 @@ const getUserStats = async (req, res) => {
 
 const getProfile = async (req, res) => {
   try {
-    // Always fetch the fresh user object from the database using the ID from the token
-    // to ensure you have the latest data and a full Mongoose document.
-    const user = await User.findById(req.user.id).select('-password -otp -otpExpires').lean();
-
-    if (!user) {
+    const doc = await User.findById(req.user.id).select('-password -otp -otpExpires');
+    if (!doc) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-
-    // Ensure profile is an object, even if it's not set in the database, to prevent frontend errors.
-    if (!user.profile) {
-      user.profile = {};
+    if (!doc.username) {
+      doc.username = generateUsername(doc.name, doc.email);
+      await doc.save();
     }
-
+    if (!doc.profile) {
+      doc.profile = {};
+    }
+    const user = doc.toObject();
     res.json({ success: true, user });
   } catch (error) {
     console.error('Get profile error:', error);

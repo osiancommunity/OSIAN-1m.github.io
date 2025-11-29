@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 _id: user._id,  // Add user unique _id
                 name: user.name,
                 email: user.email,
-                username: user.username || existingLocal.username || defaultData.username,
+                username: user.username || defaultData.username,
                 mobile: user.profile?.phone || '',
                 city: user.profile?.city || '',
                 college: user.profile?.college || '',
@@ -96,16 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 stats: defaultData.stats // Keep default stats for now
             };
 
-            if (!userData.username || userData.username === defaultData.username) {
-                const persisted = existingLocal.username && existingLocal.username !== defaultData.username ? existingLocal.username : null;
-                if (persisted) {
-                    userData.username = persisted;
-                } else {
-                    const baseName = (userData.name || 'user').replace(/\s+/g, '').toLowerCase();
-                    const randomNumber = Math.floor(1000 + Math.random() * 9000);
-                    userData.username = `@${baseName}${randomNumber}`;
-                }
-            }
+            
 
             localStorage.setItem('osianUserData', JSON.stringify(userData));
 

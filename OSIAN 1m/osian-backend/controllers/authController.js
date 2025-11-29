@@ -107,6 +107,7 @@ exports.verifyOtp = async (req, res) => {
             _id: user._id,
             name: user.name,
             email: user.email,
+            username: user.username,
             role: user.role,
             profile: user.profile
         };
@@ -240,7 +241,7 @@ exports.login = async (req, res) => {
         }
 
         // Prepare user object for response
-        const userResponse = { _id: user._id, name: user.name, email: user.email, role: user.role, profile: user.profile };
+        const userResponse = { _id: user._id, name: user.name, email: user.email, username: user.username, role: user.role, profile: user.profile };
 
         console.log(`Login successful for email: ${email}, role: ${user.role}`);
         res.status(200).json({ success: true, token, user: userResponse });

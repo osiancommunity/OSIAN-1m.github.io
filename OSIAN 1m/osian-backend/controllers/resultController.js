@@ -351,13 +351,25 @@ const releasePendingResults = async (req, res) => {
   try {
     console.log('Release Pending Results API called');
     const { resultIds } = req.body;
-    if (!resultIds || !Array.isArray(resultIds)) {
+    if (!resultIds || !Array.isArray(resultIds) || resultIds.length === 0) {
       return res.status(400).json({ success: false, message: 'Invalid resultIds provided' });
     }
-    // Further processing logic here to update results status...
-    // For debugging, just return success for now
-    console.log('Results to release:', resultIds);
-    res.json({ success: true, message: 'Results released successfully', resultIds });
+
+    const ids = resultIds
+      .filter(Boolean)
+      .map(id => new mongoose.Types.ObjectId(id));
+
+    const updateRes = await Result.updateMany(
+      { _id: { $in: ids }, status: 'pending' },
+      { $set: { status: 'completed', releaseTime: null } }
+    );
+
+    res.json({
+      success: true,
+      message: 'Results released successfully',
+      matched: updateRes.matchedCount ?? updateRes.nMatched ?? 0,
+      modified: updateRes.modifiedCount ?? updateRes.nModified ?? 0
+    });
   } catch (error) {
     console.error('Error in releasePendingResults:', error);
     res.status(500).json({ success: false, message: 'Server error during releasing results' });

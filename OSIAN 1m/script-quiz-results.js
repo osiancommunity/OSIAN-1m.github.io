@@ -188,7 +188,7 @@ async function fetchAllResults() {
             const completedAt = result.completedAt ? new Date(result.completedAt).toLocaleDateString() : '--';
 
             row.innerHTML = `
-                <td><input type="checkbox" class="result-checkbox" data-result-id="${result._id}" data-user-id="${result.userId ? result.userId._id : ''}"></td>
+                <td><input type="checkbox" class="result-checkbox" data-result-id="${result._id}" data-user-id="${result.userId ? result.userId._id : ''}" data-quiz-title="${result.quizId ? (result.quizId.title || '') : ''}"></td>
                 <td>${result.userId ? result.userId.name : 'Unknown'}</td>
                 <td>${result.userId ? result.userId.email : 'Unknown'}</td>
                 <td>${score} / ${totalQuestions}</td>
@@ -325,6 +325,13 @@ async function fetchAllResults() {
         }
 
         const resultIds = Array.from(selectedCheckboxes).map(cb => cb.getAttribute('data-result-id'));
+        const userIdsForNotify = Array.from(selectedCheckboxes)
+            .map(cb => cb.getAttribute('data-user-id'))
+            .filter(id => !!id);
+        const sendNotifyCheckbox = document.getElementById('release-send-notify');
+        const messageInput = document.getElementById('release-message');
+        const shouldSendNotify = sendNotifyCheckbox ? sendNotifyCheckbox.checked : true;
+        const rawMessage = (messageInput && messageInput.value.trim()) || 'Your quiz results have been released for {{quizTitle}} on {{releaseDate}}.';
 
         try {
             const response = await fetch(`${backendUrl}/results/release`, {
@@ -343,6 +350,44 @@ async function fetchAllResults() {
             }
 
             alert('Results released successfully!');
+
+            // Auto-send notifications to selected users (optional)
+            if (shouldSendNotify && userIdsForNotify.length > 0) {
+                const dateStr = new Date().toLocaleString();
+                const admin = JSON.parse(localStorage.getItem('user')) || {};
+                const adminName = admin && admin.name ? admin.name : 'Admin';
+                // Derive a quiz title: if filter set to a single quiz, use it; else pick first selected checkbox title or 'Selected Quizzes'
+                const filterEl = document.getElementById('quiz-filter');
+                let quizTitle = 'Selected Quizzes';
+                if (filterEl && filterEl.value && filterEl.value !== 'all') {
+                    const q = allQuizzes.find(q => q._id === filterEl.value);
+                    quizTitle = q ? (q.title || quizTitle) : quizTitle;
+                } else {
+                    const firstCb = document.querySelector('.result-checkbox:checked');
+                    const t = firstCb ? firstCb.getAttribute('data-quiz-title') : '';
+                    quizTitle = t || quizTitle;
+                }
+                const finalMessage = renderTemplate(rawMessage, { quizTitle, releaseDate: dateStr, adminName });
+                try {
+                    const notifyRes = await fetch(`${backendUrl}/notifications/send-result`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            userIds: userIdsForNotify,
+                            message: finalMessage
+                        })
+                    });
+                    if (!notifyRes.ok) {
+                        const errText = await notifyRes.text();
+                        console.warn('Notification send failed:', errText);
+                    }
+                } catch (e) {
+                    console.warn('Notification send error:', e);
+            }
+    }
             // Refresh the results
             if (quizFilter.value === 'all') {
                 fetchAllResults();
@@ -389,6 +434,20 @@ async function fetchAllResults() {
             modal.classList.remove('active');
 
             try {
+                const dateStr = new Date().toLocaleString();
+                const admin = JSON.parse(localStorage.getItem('user')) || {};
+                const adminName = admin && admin.name ? admin.name : 'Admin';
+                let quizTitle = 'Selected Quizzes';
+                const filterEl = document.getElementById('quiz-filter');
+                if (filterEl && filterEl.value && filterEl.value !== 'all') {
+                    const q = allQuizzes.find(q => q._id === filterEl.value);
+                    quizTitle = q ? (q.title || quizTitle) : quizTitle;
+                } else {
+                    const firstCb = document.querySelector('.result-checkbox:checked');
+                    const t = firstCb ? firstCb.getAttribute('data-quiz-title') : '';
+                    quizTitle = t || quizTitle;
+                }
+                const finalMessage = renderTemplate(notificationMessage, { quizTitle, releaseDate: dateStr, adminName });
                 const response = await fetch(`${backendUrl}/notifications/send-result`, {
                     method: 'POST',
                     headers: {
@@ -397,7 +456,7 @@ async function fetchAllResults() {
                     },
                     body: JSON.stringify({
                         userIds,
-                        message: notificationMessage
+                        message: finalMessage
                     })
                 });
 
@@ -447,11 +506,63 @@ async function fetchAllResults() {
     document.getElementById('notify-btn').addEventListener('click', sendNotification);
 
     // --- Global Functions for Buttons ---
-    window.viewDetailedResult = function(resultId) {
-        // Implement detailed result view
-        alert('Detailed result view functionality to be implemented');
+    window.viewDetailedResult = async function(resultId) {
+        const backendUrl = 'http://localhost:5000/api';
+        const token = localStorage.getItem('token');
+        const modal = document.getElementById('result-modal');
+        const modalBody = document.getElementById('result-modal-body');
+        const modalTitle = document.getElementById('result-modal-title');
+        const closeBtn = document.getElementById('result-modal-close');
+
+        try {
+            const response = await fetch(`${backendUrl}/results/${resultId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || 'Failed to load result details');
+            }
+            const data = await response.json();
+            const r = data.result || data;
+
+            const score = r.score ?? 0;
+            const totalQuestions = r.totalQuestions ?? 1;
+            const percentage = ((score / totalQuestions) * 100).toFixed(1);
+            const status = r.status === 'completed' ? 'Completed' : (r.status === 'pending' ? 'Pending' : 'In Progress');
+
+            modalTitle.textContent = r.quizId && r.quizId.title ? `Result: ${r.quizId.title}` : 'Result Details';
+            modalBody.innerHTML = `
+                <div class="result-details-grid">
+                    <div><strong>Name:</strong> ${r.userId ? r.userId.name : 'Unknown'}</div>
+                    <div><strong>Email:</strong> ${r.userId ? r.userId.email : 'Unknown'}</div>
+                    <div><strong>Score:</strong> ${score} / ${totalQuestions}</div>
+                    <div><strong>Percentage:</strong> ${percentage}%</div>
+                    <div><strong>Status:</strong> ${status}</div>
+                    <div><strong>Time Taken:</strong> ${r.timeTaken ?? '--'}s</div>
+                    <div><strong>Completed:</strong> ${r.completedAt ? new Date(r.completedAt).toLocaleString() : '--'}</div>
+                </div>
+                <div class="result-answers">
+                    <h4>Answers</h4>
+                    ${Array.isArray(r.answers) && r.answers.length ? r.answers.map((a, idx) => {
+                        const correct = a.isCorrect || a.correct;
+                        return `<div class="answer-item ${correct ? 'correct' : 'wrong'}"><span>Q${idx+1}</span><span>${correct ? 'Correct' : 'Wrong'}</span></div>`;
+                    }).join('') : '<p>No answer details available.</p>'}
+                </div>
+            `;
+
+            if (modal) modal.classList.add('active');
+            if (closeBtn) closeBtn.onclick = () => modal.classList.remove('active');
+            window.onclick = (event) => { if (event.target === modal) modal.classList.remove('active'); };
+        } catch (e) {
+            alert(`Failed to open result: ${e.message}`);
+        }
     };
 
     // --- Initial Load ---
     fetchMyQuizzes();
 });
+    function renderTemplate(tpl, ctx) {
+        return tpl.replace(/\{\{\s*(\w+)\s*\}\}/g, function(_, key){
+            return (ctx && key in ctx) ? ctx[key] : '';
+        });
+    }
