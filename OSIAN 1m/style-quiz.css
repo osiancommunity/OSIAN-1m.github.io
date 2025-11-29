@@ -295,3 +295,12 @@ body {
     color: #fff;
     text-shadow: 0 1px 2px rgba(0,0,0,0.6);
 }
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .quiz-main { padding: 20px; }
+    .quiz-header { padding: 15px 20px; }
+    .question-header h2 { font-size: 18px; }
+    .option { padding: 12px 14px; }
+    #proctor-video-wrapper { width: 160px; height: 100px; right: 8px; bottom: 8px; }
+}

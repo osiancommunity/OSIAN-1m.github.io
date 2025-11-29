@@ -385,7 +385,7 @@ ul {
     }
 }
 
-@media (max-gwidth: 768px) {
+@media (max-width: 768px) {
     .nav-menu {
         position: fixed;
         left: -100%;
@@ -412,6 +412,7 @@ ul {
 
     .hamburger {
         display: block;
+        cursor: pointer;
     }
 
     .hamburger.active .bar:nth-child(2) {

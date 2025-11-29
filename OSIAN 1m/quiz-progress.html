@@ -43,7 +43,8 @@
                     <h1>My Quiz Progress</h1>
                     <p>Track your scores, attempts, and performance over time.</p>
                 </div>
-<div class="header-profile">
+                <div class="header-profile">
+                    <button class="sidebar-toggle" id="sidebar-toggle"><i class='bx bx-menu'></i></button>
                     <a href="profile.html"><img src="https://i.ibb.co/jP9JWBBy/diljj.png" alt="Profile Picture" id="header-avatar"></a>
                 </div>
             </header>
@@ -114,5 +115,16 @@
     </div>
 
    <script src="script-quiz-progress.js"></script>
+   <script>
+   (function(){
+       const toggle = document.getElementById('sidebar-toggle');
+       const sidebar = document.querySelector('.sidebar');
+       if (toggle && sidebar) {
+           toggle.addEventListener('click', function(){
+               sidebar.classList.toggle('open');
+           });
+       }
+   })();
+   </script>
 </body>
 </html>

@@ -64,6 +64,9 @@
                     <h1>Notifications</h1>
                     <p>Stay updated with the latest announcements and system messages.</p>
                 </div>
+                <div class="header-profile">
+                    <button class="sidebar-toggle" id="sidebar-toggle"><i class='bx bx-menu'></i></button>
+                </div>
             </header>
 
             <ul class="notification-list-page" id="notification-list-container">
@@ -73,5 +76,16 @@
     </div>
 
     <script src="script-notifications.js"></script>
+    <script>
+    (function(){
+        const toggle = document.getElementById('sidebar-toggle');
+        const sidebar = document.querySelector('.sidebar');
+        if (toggle && sidebar) {
+            toggle.addEventListener('click', function(){
+                sidebar.classList.toggle('open');
+            });
+        }
+    })();
+    </script>
 </body>
 </html>
