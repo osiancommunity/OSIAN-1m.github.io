@@ -64,6 +64,25 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
+    async function loadAdminKpis() {
+        try {
+            const res = await fetch(`${backendUrl}/analytics/admin-kpis`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const data = await res.json();
+            const k = data.kpis || {};
+            const tq = document.getElementById('kpi-total-quizzes');
+            const aq = document.getElementById('kpi-active-quizzes');
+            const tp = document.getElementById('kpi-total-participants');
+            const pq = document.getElementById('kpi-paid-quizzes');
+            if (tq) tq.textContent = (k.totalQuizzesCreated || 0).toString();
+            if (aq) aq.textContent = (k.activeQuizzes || 0).toString();
+            if (tp) tp.textContent = (k.totalParticipants || 0).toString();
+            if (pq) pq.textContent = (k.paidQuizzes || 0).toString();
+        } catch(e) {
+            console.error('Error loading KPIs:', e);
+        }
+    }
+
     // --- Initial Load ---
+    loadAdminKpis();
     fetchRecentQuizzes();
 });

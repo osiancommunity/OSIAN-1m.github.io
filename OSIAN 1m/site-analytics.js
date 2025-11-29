@@ -1,15 +1,12 @@
-document.addEventListener("DOMContentLoaded", function() {
-
-    // Helper data (replace with backend API call)
-    const analyticsData = {
-        months: ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'],
-        userCount: [150, 220, 350, 480, 520, 600],
-        categories: {
-            labels: ['Technical', 'GK', 'Law', 'Sports', 'Coding'],
-            data: [35, 25, 15, 10, 15], // Percentages
-            colors: ['#3498db', '#e67e22', '#2ecc71', '#9b59b6', '#f39c12']
-        }
-    };
+document.addEventListener("DOMContentLoaded", async function() {
+    const backendUrl = 'http://localhost:5000/api';
+    const token = localStorage.getItem('token');
+    let analyticsData = { months: [], userCount: [], categories: { labels: [], data: [], colors: [] } };
+    try {
+        const res = await fetch(`${backendUrl}/analytics/charts`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const data = await res.json();
+        analyticsData = data.charts || analyticsData;
+    } catch(e) {}
 
     // --- Chart 1: User Registration Trend (Line Chart) ---
     const userChartCtx = document.getElementById('userChart').getContext('2d');

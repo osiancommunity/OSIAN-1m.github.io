@@ -101,13 +101,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // --- Fetch Results for All Quizzes ---
 async function fetchAllResults() {
     try {
-        // FIX: Fetch results for the logged-in admin by their ID, not a generic '/admin' endpoint.
-        const adminId = user?._id;
-        if (!adminId) {
-            throw new Error("Admin user ID not found.");
-        }
-
-        const response = await fetch(`${backendUrl}/results/user/${adminId}`, {
+        const response = await fetch(`${backendUrl}/results/admin`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -128,8 +122,9 @@ async function fetchAllResults() {
         const data = await response.json();
         allResults = data.results || [];
         filteredResults = [...allResults];
-        sortResults();
+        sortResults && sortResults();
         renderResults();
+        renderSummary();
         renderSummary();
     } catch (error) {
         console.error('Error fetching results:', error);

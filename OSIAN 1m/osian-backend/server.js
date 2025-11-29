@@ -59,6 +59,7 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const resultRoutes = require('./routes/resultRoutes');
 const mentorshipRoutes = require('./routes/mentorshipRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
 
 app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
@@ -67,6 +68,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/results', resultRoutes);
 app.use('/api/mentorship', mentorshipRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -1,15 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { getSuperAdminKpis, getAdminKpis, getChartData } = require('../controllers/analyticsController');
-const { protect, admin, superadmin } = require('../middleware/authMiddleware');
+const { authenticateToken, requireRole } = require('../middleware/authMiddleware');
 
-// @route   GET /api/analytics/superadmin-kpis
-router.get('/superadmin-kpis', protect, superadmin, getSuperAdminKpis);
-
-// @route   GET /api/analytics/admin-kpis
-router.get('/admin-kpis', protect, admin, getAdminKpis);
-
-// @route   GET /api/analytics/charts
-router.get('/charts', protect, superadmin, getChartData);
+router.get('/superadmin-kpis', authenticateToken, requireRole(['superadmin']), getSuperAdminKpis);
+router.get('/admin-kpis', authenticateToken, requireRole(['admin','superadmin']), getAdminKpis);
+router.get('/charts', authenticateToken, requireRole(['superadmin','admin']), getChartData);
 
 module.exports = router;

@@ -228,13 +228,13 @@ const getQuizResults = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const results = await Result.find({ quizId, status: 'completed' })
+    const results = await Result.find({ quizId })
       .populate('userId', 'name email')
       .sort({ score: -1, timeTaken: 1, completedAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const totalResults = await Result.countDocuments({ quizId, status: 'completed' });
+    const totalResults = await Result.countDocuments({ quizId });
 
     res.json({
       success: true,
