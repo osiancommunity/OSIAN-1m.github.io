@@ -36,9 +36,19 @@ document.addEventListener("DOMContentLoaded", function() {
     const kpiPassed = document.querySelector('.kpi-grid-user .kpi-card-user:nth-child(2) h2');
     const kpiAvgScore = document.querySelector('.kpi-grid-user .kpi-card-user:nth-child(3) h2');
     const historyTableBody = document.querySelector('.quiz-history-table tbody');
+    const regPrevBtn = document.getElementById('reg-prev');
+    const regNextBtn = document.getElementById('reg-next');
+    const regPageInfo = document.getElementById('reg-page-info');
+    const histPrevBtn = document.getElementById('hist-prev');
+    const histNextBtn = document.getElementById('hist-next');
+    const histPageInfo = document.getElementById('hist-page-info');
 
     // --- Fetch User's Results ---
-    async function fetchMyResults() {
+    let historyCurrentPage = 1;
+    let historyTotalPages = 1;
+    const historyPageSize = 10;
+
+    async function fetchMyResults(page = 1) {
         if (!historyTableBody) return; // In case element isn't found
         historyTableBody.innerHTML = '<tr><td colspan="6">Loading your results...</td></tr>';
 
@@ -49,7 +59,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             // --- BACKEND CALL ---
-            const response = await fetch(`${backendUrl}/results/user/${userId}`, {
+            const response = await fetch(`${backendUrl}/results/user/${userId}?page=${page}&limit=${historyPageSize}`, {
                 headers: {
                     'Authorization': `Bearer ${token}` // Send the user's token
                 }
@@ -67,7 +77,11 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             const data = await response.json();
-            const results = data.results;
+            const results = data.results || [];
+            const pagination = data.pagination || { currentPage: page, totalPages: 1, totalResults: results.length };
+            historyCurrentPage = pagination.currentPage || page;
+            historyTotalPages = pagination.totalPages || 1;
+            updateHistoryPagination();
 
             // Populate the page with the data
             populateStats(results);
@@ -80,6 +94,11 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     // --- Fetch User's Registered Quizzes ---
+    let registeredAll = [];
+    let regCurrentPage = 1;
+    let regTotalPages = 1;
+    const regPageSize = 8;
+
     async function fetchMyRegisteredQuizzes() {
         try {
             const response = await fetch(`${backendUrl}/quizzes/user/registered`, {
@@ -100,10 +119,10 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             const data = await response.json();
-            const quizzes = data.quizzes;
-
-            // Populate registered quizzes section
-            populateRegisteredQuizzes(quizzes);
+            registeredAll = data.quizzes || [];
+            regTotalPages = Math.max(1, Math.ceil(registeredAll.length / regPageSize));
+            regCurrentPage = 1;
+            renderRegisteredPage();
 
         } catch (error) {
             console.error('Error fetching registered quizzes:', error);
@@ -211,6 +230,25 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
+    function renderRegisteredPage() {
+        const start = (regCurrentPage - 1) * regPageSize;
+        const pageItems = registeredAll.slice(start, start + regPageSize);
+        populateRegisteredQuizzes(pageItems);
+        updateRegisteredPagination();
+    }
+
+    function updateRegisteredPagination() {
+        if (regPageInfo) regPageInfo.textContent = `Page ${regCurrentPage} of ${regTotalPages}`;
+        if (regPrevBtn) regPrevBtn.disabled = regCurrentPage === 1;
+        if (regNextBtn) regNextBtn.disabled = regCurrentPage === regTotalPages;
+    }
+
+    function updateHistoryPagination() {
+        if (histPageInfo) histPageInfo.textContent = `Page ${historyCurrentPage} of ${historyTotalPages}`;
+        if (histPrevBtn) histPrevBtn.disabled = historyCurrentPage === 1;
+        if (histNextBtn) histNextBtn.disabled = historyCurrentPage === historyTotalPages;
+    }
+
     // --- Function to Populate History Table ---
     function populateHistoryTable(results) {
         const historyTableBody = document.getElementById('quiz-history-body');
@@ -255,6 +293,12 @@ document.addEventListener("DOMContentLoaded", function() {
             historyTableBody.appendChild(row);
         });
     }
+
+    // --- Pagination Events ---
+    if (regPrevBtn) regPrevBtn.addEventListener('click', () => { if (regCurrentPage > 1) { regCurrentPage--; renderRegisteredPage(); } });
+    if (regNextBtn) regNextBtn.addEventListener('click', () => { if (regCurrentPage < regTotalPages) { regCurrentPage++; renderRegisteredPage(); } });
+    if (histPrevBtn) histPrevBtn.addEventListener('click', () => { if (historyCurrentPage > 1) { fetchMyResults(historyCurrentPage - 1); } });
+    if (histNextBtn) histNextBtn.addEventListener('click', () => { if (historyCurrentPage < historyTotalPages) { fetchMyResults(historyCurrentPage + 1); } });
 
     // --- Global Functions for Buttons ---
     window.startQuiz = function(quizId) {
