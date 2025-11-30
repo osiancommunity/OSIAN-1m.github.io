@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 // Sub-schema for the user's profile information.
 // This keeps the main User schema cleaner.
@@ -43,6 +43,7 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please provide an email'],
         unique: true,
+        lowercase: true,
         match: [
             /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
             'Please add a valid email'
@@ -70,6 +71,12 @@ const UserSchema = new mongoose.Schema({
         type: String
     },
     otpExpires: {
+        type: Date
+    },
+    resetOtp: {
+        type: String
+    },
+    resetOtpExpires: {
         type: Date
     },
     profile: ProfileSchema,
@@ -100,19 +107,23 @@ const UserSchema = new mongoose.Schema({
 });
 
 // Middleware to hash password before saving the user document
-UserSchema.pre('save', async function(next) {
-    // Only run this function if password was actually modified
+UserSchema.pre('save', function(next) {
     if (!this.isModified('password')) {
         return next();
     }
-
-    // Hash the password with a salt round of 10
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
+    if (this._skipHash) {
+        return next();
+    }
+    try {
+        const salt = bcrypt.genSaltSync(10);
+        this.password = bcrypt.hashSync(this.password, salt);
+        next();
+    } catch (err) {
+        next(err);
+    }
 });
 
-UserSchema.pre('save', async function(next) {
+UserSchema.pre('validate', async function(next) {
     if (!this.username) {
         const n = (this.name && this.name[0]) ? this.name[0].toLowerCase() : (this.email && this.email[0] ? this.email[0].toLowerCase() : 'u');
         const sum = (this.email || '').toLowerCase().split('').reduce((a, c) => a + c.charCodeAt(0), 0);

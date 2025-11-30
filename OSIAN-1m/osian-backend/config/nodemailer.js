@@ -116,8 +116,34 @@ const sendResultNotification = async (email, name, subject, message, resultLink)
   }
 };
 
+const sendResetOTP = async (email, otp) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'Your OTP to reset Osian password',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Password Reset OTP</h2>
+        <p>Use the following OTP to reset your password:</p>
+        <div style="background-color: #f8f9fa; padding: 20px; text-align: center; margin: 20px 0;">
+          <h1 style="color: #e67e22; font-size: 32px; margin: 0;">${otp}</h1>
+        </div>
+        <p>This OTP will expire in 10 minutes.</p>
+        <p>If you didn't request this, you can ignore this email.</p>
+      </div>
+    `
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    throw error;
+  }
+};
+
 module.exports = {
   sendOTP,
   sendWelcomeEmail,
-  sendResultNotification
+  sendResultNotification,
+  sendResetOTP
 };
